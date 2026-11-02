@@ -1,0 +1,57 @@
+name: Build Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install and sync web app into Android project
+        run: |
+          npm ci
+          npx cap sync android
+
+      - name: Build APK
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PversionCode=${{ github.run_number }} --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../../imposter.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imposter-apk
+          path: imposter.apk
+
+      - name: Publish to the "android-latest" release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest imposter.apk \
+            --title "Imposter — Android app (build ${{ github.run_number }})" \
+            --notes "Download imposter.apk on your Android phone and open it to install. Built from ${{ github.sha }}."

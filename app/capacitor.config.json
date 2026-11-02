@@ -1,0 +1,10 @@
+{
+  "appId": "com.djswagmaster.imposter",
+  "appName": "Imposter",
+  "webDir": "www",
+  "backgroundColor": "#14111c",
+  "android": {
+    "backgroundColor": "#14111c",
+    "adjustMarginsForEdgeToEdge": "force"
+  }
+}

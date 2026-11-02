@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14111c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Imposter">
+<meta name="description" content="Pass-and-play party game: everyone gets the secret word except the imposter.">
+<title>Who's the Imposter?</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  @font-face{font-family:"Bricolage";src:url("fonts/bricolage.woff2") format("woff2");font-weight:200 800;font-display:swap}
+  :root{
+    --bg:#14111c; --panel:#1f1a2b; --panel2:#2a2339; --line:#3a3150;
+    --ink:#f4efe6; --muted:#a59cb8; --accent:#ffcf3f; --red:#ff4f5e; --green:#3fe0a0;
+    --r:18px;
+    --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100%;overscroll-behavior:none}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    background:radial-gradient(900px 500px at 110% -10%,#3b1d4a 0%,transparent 60%),radial-gradient(700px 500px at -20% 110%,#1d2f4a 0%,transparent 60%),var(--bg);background-attachment:fixed}
+  .wrap{max-width:520px;margin:0 auto;padding:calc(16px + var(--st)) 16px calc(32px + var(--sb));min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+  h1{font-size:clamp(38px,11vw,56px);line-height:.9;margin:8px 0 6px;font-weight:800;letter-spacing:-.03em}
+  h1 .q{color:var(--red)}
+  h2{font-size:20px;margin:0 0 10px;font-weight:800;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font:inherit;font-weight:800;font-size:18px;padding:16px 18px;border-radius:14px;border:0;cursor:pointer;background:var(--accent);color:#1a1300;transition:transform .08s,opacity .2s}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.35}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .btn.red{background:var(--red);color:#fff}
+  .btn.sm{font-size:15px;padding:10px 14px;width:auto}
+  .mt{margin-top:10px}
+  .muted{color:var(--muted)} .small{font-size:13px} .center{text-align:center}
+  .spacer{flex:1}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;min-height:44px}
+  .iconbtn{width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:20px;display:grid;place-items:center;cursor:pointer}
+  /* players */
+  .plist{display:flex;flex-direction:column;gap:8px}
+  .prow{display:flex;align-items:center;gap:10px}
+  .avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;color:#14111c;flex:none}
+  .prow input{flex:1;min-width:0;font:inherit;font-size:17px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);outline:none;-webkit-user-select:text;user-select:text}
+  .prow input:focus{border-color:var(--accent)}
+  .x{width:40px;height:40px;border-radius:10px;border:0;background:var(--panel2);color:var(--muted);font-size:20px;cursor:pointer;flex:none}
+  .x[disabled]{opacity:.3}
+  /* categories */
+  .cats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .cat{padding:14px 12px;border-radius:14px;background:var(--panel2);border:2px solid transparent;color:var(--ink);font:inherit;font-weight:700;font-size:15px;text-align:left;cursor:pointer;min-height:66px}
+  .cat .emo{font-size:22px;display:block;margin-bottom:4px}
+  .cat.picked{border-color:var(--accent);background:#3a3218}
+  .opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;cursor:pointer}
+  .opt+.opt{border-top:1px solid var(--line)}
+  .switch{width:50px;height:30px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+  .switch.on{background:var(--green)} .switch.on::after{left:23px}
+  .seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;gap:2px}
+  .opt>span:first-child{white-space:nowrap}
+  .seg button{font:inherit;font-weight:700;font-size:14px;padding:7px 8px;border:0;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer}
+  .seg button.on{background:var(--panel2);color:var(--ink)}
+  /* reveal card */
+  .who{font-size:clamp(36px,11vw,52px);font-weight:800;line-height:1;letter-spacing:-.02em;margin:4px 0 0;word-break:break-word}
+  .reveal{perspective:1100px;margin:14px 0}
+  .flip{position:relative;width:100%;height:min(56vh,440px);cursor:pointer;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .flip.open{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .front{background:repeating-linear-gradient(45deg,#2a2339 0 14px,#251e33 14px 28px);border:2px dashed var(--line)}
+  .front .big{font-size:68px}
+  .back{transform:rotateY(180deg);border:2px solid var(--line)}
+  .back.imp{background:linear-gradient(160deg,#5a1020,#2a0a12);border-color:var(--red)}
+  .back.crew{background:linear-gradient(160deg,#103a2c,#0c1f1a);border-color:var(--green)}
+  .word{font-size:clamp(36px,12vw,60px);font-weight:800;line-height:1;letter-spacing:-.02em;margin:12px 0;word-break:break-word}
+  .tag{font-size:13px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;opacity:.85}
+  .progress{display:flex;gap:5px;justify-content:center;margin-top:4px}
+  .progress span{width:8px;height:8px;border-radius:50%;background:var(--line)}
+  .progress span.done{background:var(--accent)}
+  .timer{font-size:72px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
+  .timer.low{color:var(--red)}
+  .pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.85);opacity:0}to{transform:none;opacity:1}}
+  .sheet{position:fixed;inset:0;background:rgba(10,8,15,.7);display:flex;align-items:flex-end;justify-content:center;z-index:10;animation:fade .2s}
+  .sheet .inner{background:var(--panel);border-radius:22px 22px 0 0;padding:22px 20px calc(22px + var(--sb));max-width:520px;width:100%;max-height:85vh;overflow:auto;animation:up .25s cubic-bezier(.2,.8,.2,1)}
+  .sheet ol{padding-left:20px;line-height:1.5;margin:0 0 16px}
+  .sheet li{margin-bottom:8px}
+  @keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(40px);opacity:0}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="words.js"></script>
+<script>
+"use strict";
+const CATS = window.CATS, CAT_KEYS = Object.keys(CATS);
+const $app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rnd = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
+const pick = a => a[rnd(a.length)];
+const COLORS = ["#ffcf3f","#3fe0a0","#6ab8ff","#ff8fb1","#c39bff","#ff9f43","#7ee8fa","#f9f871","#b8e986","#ff6b6b","#a0c4ff","#ffd6a5"];
+const store = { get(k, d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch{ return d; } },
+                set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} } };
+const buzz = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch{} };
+
+/* ---------- state ---------- */
+const S = {
+  screen: "setup",
+  players: store.get("imp.players", ["Player 1","Player 2","Player 3","Player 4"]),
+  cat: store.get("imp.cat", "animals"),
+  hint: store.get("imp.hint", true),
+  timer: store.get("imp.timer", 0),     // minutes, 0 = off
+  used: store.get("imp.used", {}),
+  round: null,                           // {cat, word, imp, starter, i, open}
+  confirmReveal: false,
+  tEnd: 0, tick: null,
+  help: false
+};
+const save = () => { store.set("imp.players", S.players); store.set("imp.cat", S.cat); store.set("imp.hint", S.hint); store.set("imp.timer", S.timer); store.set("imp.used", S.used); };
+const nameOf = i => (S.players[i] || "").trim() || `Player ${i + 1}`;
+
+function deal(){
+  const cat = S.cat === "random" ? pick(CAT_KEYS) : S.cat;
+  const used = (S.used[cat] = (S.used[cat] || []).filter(w => CATS[cat].words.includes(w)));
+  let pool = CATS[cat].words.filter(w => !used.includes(w));
+  if (!pool.length){ S.used[cat] = []; pool = CATS[cat].words.slice(); }
+  const word = pick(pool); S.used[cat].push(word);
+  const n = S.players.length, imp = rnd(n);
+  let starter; do { starter = rnd(n); } while (starter === imp);
+  S.round = { cat, word, imp, starter, i: 0, open: false, seen: false };
+  S.confirmReveal = false; S.screen = "pass"; save(); go();
+}
+
+/* ---------- navigation (Android back button + browser back) ---------- */
+function go(){ render(); }
+function back(){
+  if (S.help){ S.help = false; return render(); }
+  if (S.screen === "setup") return false;
+  if (S.screen === "reveal"){ S.screen = "setup"; S.round = null; return render(); }
+  if (confirm("End this round and go back to setup?")){ stopTimer(); S.screen = "setup"; S.round = null; render(); }
+  return true;
+}
+// Capacitor (Android app) hardware back button
+try{
+  const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (App) App.addListener("backButton", () => { if (back() === false) App.exitApp(); });
+}catch{}
+
+/* ---------- timer ---------- */
+function startTimer(){
+  stopTimer(); if (!S.timer) return;
+  S.tEnd = Date.now() + S.timer * 60000;
+  S.tick = setInterval(() => {
+    const el = document.getElementById("timer"); if (!el) return;
+    const left = Math.max(0, S.tEnd - Date.now()), s = Math.ceil(left / 1000);
+    el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    el.classList.toggle("low", s <= 10);
+    if (left <= 0){ stopTimer(); buzz([300,150,300,150,600]); el.textContent = "Time's up!"; el.style.fontSize = "48px"; }
+  }, 250);
+}
+function stopTimer(){ clearInterval(S.tick); S.tick = null; }
+
+/* ---------- render ---------- */
+function render(){
+  const f = { setup: renderSetup, pass: renderPass, talk: renderTalk, reveal: renderReveal }[S.screen];
+  f(); if (S.help) renderHelp();
+}
+
+function renderSetup(){
+  const n = S.players.length;
+  $app.innerHTML = `
+    <div class="topbar"><span></span><button class="iconbtn" id="help" aria-label="How to play">?</button></div>
+    <h1>Who's the<br>Imposter<span class="q">?</span></h1>
+    <p class="sub">One phone. Everyone sees the secret word — except the imposter.</p>
+    <div class="card">
+      <h2>Players · ${n}</h2>
+      <div class="plist">${S.players.map((p, i) => `
+        <div class="prow"><span class="avatar" style="background:${COLORS[i % COLORS.length]}">${esc((p.trim()[0] || (i + 1)).toString().toUpperCase())}</span>
+          <input data-i="${i}" value="${esc(p)}" placeholder="Player ${i + 1}" maxlength="16" autocomplete="off" enterkeyhint="done">
+          <button class="x" data-del="${i}" ${n <= 3 ? "disabled" : ""} aria-label="Remove">×</button></div>`).join("")}
+      </div>
+      <button class="btn ghost sm mt" id="add" ${n >= 20 ? "disabled" : ""} style="width:100%">＋ Add player</button>
+    </div>
+    <div class="card">
+      <h2>Category</h2>
+      <div class="cats">${CAT_KEYS.concat("random").map(k => { const c = k === "random" ? {name:"Surprise me",emo:"🎲"} : CATS[k];
+        return `<button class="cat ${S.cat === k ? "picked" : ""}" data-cat="${k}"><span class="emo">${c.emo}</span>${esc(c.name)}</button>`; }).join("")}</div>
+    </div>
+    <div class="card">
+      <div class="opt" id="hint"><span><b>Imposter sees the category</b><br><span class="muted small">Off = harder for the imposter</span></span><span class="switch ${S.hint ? "on" : ""}"></span></div>
+      <div class="opt"><span><b>Discussion timer</b></span>
+        <div class="seg" id="timer">${[0,1,2,3,5].map(m => `<button data-m="${m}" class="${S.timer === m ? "on" : ""}">${m ? m + "m" : "Off"}</button>`).join("")}</div></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="go" style="position:sticky;bottom:calc(12px + var(--sb))">Deal cards →</button>`;
+
+  $app.querySelectorAll("input[data-i]").forEach(inp => {
+    inp.addEventListener("input", () => { S.players[+inp.dataset.i] = inp.value; save();
+      const av = inp.previousElementSibling; av.textContent = (inp.value.trim()[0] || (+inp.dataset.i + 1)).toString().toUpperCase(); });
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); });
+  });
+  $app.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { if (S.players.length > 3){ S.players.splice(+b.dataset.del, 1); save(); render(); } });
+  document.getElementById("add").onclick = () => { if (S.players.length < 20){ S.players.push(`Player ${S.players.length + 1}`); save(); render();
+      const ins = $app.querySelectorAll("input[data-i]"); const last = ins[ins.length - 1]; last.focus(); last.select(); } };
+  $app.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { S.cat = b.dataset.cat; save(); render(); });
+  document.getElementById("hint").onclick = () => { S.hint = !S.hint; save(); render(); };
+  $app.querySelectorAll("#timer [data-m]").forEach(b => b.onclick = e => { e.stopPropagation(); S.timer = +b.dataset.m; save(); render(); });
+  document.getElementById("help").onclick = () => { S.help = true; render(); };
+  document.getElementById("go").onclick = () => { document.activeElement && document.activeElement.blur(); deal(); };
+}
+
+function renderPass(){
+  const r = S.round, n = S.players.length, cat = CATS[r.cat], isImp = r.i === r.imp, last = r.i === n - 1;
+  $app.innerHTML = `
+    <div class="topbar"><button class="iconbtn" id="x" aria-label="End round">✕</button>
+      <div class="progress">${S.players.map((_, i) => `<span class="${i < r.i ? "done" : ""}"></span>`).join("")}</div><span style="width:44px"></span></div>
+    <div class="center"><div class="tag muted">${r.open ? "Only you should see this" : "Pass the phone to"}</div><div class="who" style="color:${COLORS[r.i % COLORS.length]}">${esc(nameOf(r.i))}</div></div>
+    <div class="reveal"><div class="flip ${r.open ? "open" : ""}" id="flip">
+      <div class="face front"><div class="big">🤫</div><h2 style="margin-top:12px;font-size:24px">Tap to reveal</h2><p class="muted small">Make sure nobody else is looking</p></div>
+      ${isImp
+        ? `<div class="face back imp"><div class="tag">You are the</div><div class="word">IMPOSTER</div>
+           <div class="muted">${S.hint ? `Category: <b style="color:var(--ink)">${cat.emo} ${esc(cat.name)}</b>` : "No category hint this round"}</div>
+           <p class="small" style="opacity:.8;margin-top:14px">Blend in. Work out the word from everyone's clues.</p></div>`
+        : `<div class="face back crew"><div class="tag">${cat.emo} ${esc(cat.name)}</div><div class="word">${esc(r.word)}</div>
+           <p class="small" style="opacity:.8;margin-top:4px">Give clues — but don't make it too obvious!</p></div>`}
+    </div></div>
+    <div class="spacer"></div>
+    <button class="btn" id="next" ${r.seen ? "" : "disabled"}>${r.open ? (last ? "Hide — everyone's seen it" : `Hide & pass to ${esc(nameOf(r.i + 1))}`) : (r.seen ? (last ? "Done — start talking" : `Pass to ${esc(nameOf(r.i + 1))}`) : "Tap the card first")}</button>`;
+  document.getElementById("flip").onclick = () => { r.open = !r.open; if (r.open){ r.seen = true; buzz(isImp ? [60,60,60] : 30); } render(); };
+  document.getElementById("next").onclick = () => {
+    if (!r.seen) return;
+    const wasOpen = r.open;
+    if (wasOpen){ r.open = false; document.getElementById("flip").classList.remove("open"); }
+    setTimeout(() => { if (last){ S.screen = "talk"; startTimer(); } else { r.i++; r.seen = false; } render(); }, wasOpen ? 300 : 0);
+  };
+  document.getElementById("x").onclick = back;
+}
+
+function renderTalk(){
+  const r = S.round, cat = CATS[r.cat];
+  $app.innerHTML = `
+    <div class="topbar"><button class="iconbtn" id="x" aria-label="End round">✕</button><span class="muted small">${S.hint ? `${cat.emo} ${esc(cat.name)}` : "Category hidden from imposter"}</span><span style="width:44px"></span></div>
+    <div class="card center pop" style="margin-top:8px">
+      <div style="font-size:54px">🎤</div>
+      <div class="tag muted" style="margin-top:6px">Goes first</div>
+      <div class="who" style="color:${COLORS[r.starter % COLORS.length]}">${esc(nameOf(r.starter))}</div>
+      <p class="muted" style="margin:12px 0 0">Go around the circle — each person says one word or short clue about the secret word. Then discuss and vote on who's faking it.</p>
+    </div>
+    ${S.timer ? `<div class="card center"><div class="timer" id="timer">${S.timer}:00</div><button class="btn ghost sm mt" id="restart" style="margin:10px auto 0">Restart timer</button></div>` : ""}
+    <div class="spacer"></div>
+    <button class="btn red" id="rev">${S.confirmReveal ? "Tap again to reveal" : "Reveal the imposter"}</button>`;
+  document.getElementById("rev").onclick = () => {
+    if (!S.confirmReveal){ S.confirmReveal = true; render(); setTimeout(() => { if (S.screen === "talk" && S.confirmReveal){ S.confirmReveal = false; render(); } }, 3000); return; }
+    stopTimer(); buzz([80,60,200]); S.screen = "reveal"; render();
+  };
+  if (document.getElementById("restart")) document.getElementById("restart").onclick = startTimer;
+  document.getElementById("x").onclick = back;
+}
+
+function renderReveal(){
+  const r = S.round, cat = CATS[r.cat];
+  $app.innerHTML = `
+    <div class="topbar"><span></span><span></span></div>
+    <div class="card center pop" style="border-color:var(--red);padding:28px 16px;margin-top:8px">
+      <div class="tag muted">The imposter was</div>
+      <div class="word" style="color:var(--red);margin:14px 0">${esc(nameOf(r.imp))}</div>
+      <div class="muted">The word was</div>
+      <div style="font-size:30px;font-weight:800;margin-top:4px">${esc(r.word)}</div>
+      <div class="muted small" style="margin-top:6px">${cat.emo} ${esc(cat.name)}</div>
+    </div>
+    <p class="center muted small">Imposter: if you guess the word now, you can steal the win!</p>
+    <div class="spacer"></div>
+    <button class="btn" id="again">Play again</button>
+    <button class="btn ghost mt" id="setup">Change players or category</button>`;
+  document.getElementById("again").onclick = deal;
+  document.getElementById("setup").onclick = () => { S.screen = "setup"; S.round = null; render(); };
+}
+
+function renderHelp(){
+  const d = document.createElement("div"); d.className = "sheet";
+  d.innerHTML = `<div class="inner">
+    <h2 style="font-size:24px">How to play</h2>
+    <ol>
+      <li>Add everyone's names (3–20 players) and pick a category.</li>
+      <li>Pass the phone around. Each person taps to see their card, then hides it and passes it on.</li>
+      <li>Everyone gets the same secret word — except one random <b>imposter</b>, who only sees the category (or nothing, if you turn the hint off).</li>
+      <li>Going around from the first player, everyone gives one clue about the word. Too vague looks suspicious; too obvious gives it away to the imposter.</li>
+      <li>Discuss, then vote on who you think the imposter is. Tap <b>Reveal</b> to see if you were right.</li>
+      <li>If the imposter is caught, they get one guess at the word to steal the win.</li>
+    </ol>
+    <button class="btn" id="closehelp">Got it</button></div>`;
+  d.onclick = e => { if (e.target === d){ S.help = false; render(); } };
+  document.body.querySelectorAll(".sheet").forEach(x => x.remove());
+  document.body.appendChild(d);
+  document.getElementById("closehelp").onclick = () => { S.help = false; d.remove(); };
+}
+const _render = render;
+render = function(){ document.body.querySelectorAll(".sheet").forEach(x => x.remove()); _render(); };
+
+render();
+
+/* offline support when installed from the web (skipped inside the Android app) */
+if ("serviceWorker" in navigator && location.protocol === "https:" && !window.Capacitor){
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>

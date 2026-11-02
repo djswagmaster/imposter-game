@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14111c">
+<meta name="description" content="Online party game: everyone gets the secret word except the imposter. Join from any phone.">
+<meta property="og:title" content="Who's the Imposter?">
+<meta property="og:description" content="Join my game! Everyone gets the secret word — except the imposter.">
+<title>Who's the Imposter? — Online</title>
+<link rel="icon" href="/solo/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/solo/icons/apple-touch-icon.png">
+<style>
+  @font-face{font-family:"Bricolage";src:url("/solo/fonts/bricolage.woff2") format("woff2");font-weight:200 800;font-display:swap}
+  :root{--bg:#14111c;--panel:#1f1a2b;--panel2:#2a2339;--line:#3a3150;--ink:#f4efe6;--muted:#a59cb8;--accent:#ffcf3f;--red:#ff4f5e;--green:#3fe0a0;--r:18px;
+    --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Bricolage",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100%}
+  body{background:radial-gradient(900px 500px at 110% -10%,#3b1d4a 0%,transparent 60%),radial-gradient(700px 500px at -20% 110%,#1d2f4a 0%,transparent 60%),var(--bg);background-attachment:fixed}
+  .wrap{max-width:520px;margin:0 auto;padding:calc(16px + var(--st)) 16px calc(40px + var(--sb))}
+  h1{font-size:clamp(38px,11vw,56px);line-height:.9;margin:8px 0 6px;font-weight:800;letter-spacing:-.03em}
+  h1 .q{color:var(--red)}
+  h2{font-size:20px;margin:0 0 10px;font-weight:800}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:15px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+  label.lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  input[type=text]{width:100%;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);outline:none}
+  input:focus{border-color:var(--accent)}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font:inherit;font-weight:800;font-size:18px;padding:15px 18px;border-radius:14px;border:0;cursor:pointer;background:var(--accent);color:#1a1300;transition:transform .08s,opacity .2s;text-decoration:none}
+  .btn:active{transform:scale(.97)} .btn[disabled]{opacity:.4;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .btn.red{background:var(--red);color:#fff}
+  .btn.sm{font-size:15px;padding:10px 14px;width:auto}
+  .row{display:flex;gap:10px} .row>*{flex:1}
+  .mt{margin-top:10px} .muted{color:var(--muted)} .small{font-size:13px} .center{text-align:center}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  .code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-weight:800;letter-spacing:.18em;font-size:28px;color:var(--accent)}
+  .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+  .players{display:flex;flex-wrap:wrap;gap:8px}
+  .player{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 7px;border-radius:99px;background:var(--panel2);font-weight:600;font-size:15px;border:1.5px solid transparent;color:var(--ink);font-family:inherit}
+  button.player{cursor:pointer}
+  .player.me{border-color:var(--accent)} .player.sel{border-color:var(--red);background:#3a1a22} .player.off{opacity:.45}
+  .avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#14111c;flex:none}
+  .cats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .cat{position:relative;padding:14px 12px;border-radius:14px;background:var(--panel2);border:2px solid transparent;color:var(--ink);font:inherit;font-weight:700;font-size:15px;text-align:left;cursor:pointer;min-height:66px}
+  .cat .emo{font-size:22px;display:block;margin-bottom:4px}
+  .cat.picked{border-color:var(--accent);background:#3a3218}
+  .cat.myvote::after{content:"your vote";position:absolute;top:8px;right:8px;font-size:10px;color:var(--accent);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+  .votes{display:flex;gap:3px;margin-top:6px;flex-wrap:wrap} .votes span{width:10px;height:10px;border-radius:50%}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer}
+  .switch{width:50px;height:30px;border-radius:99px;background:var(--line);position:relative;flex:none;transition:background .2s}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+  .switch.on{background:var(--green)} .switch.on::after{left:23px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .reveal{perspective:1100px;margin:6px 0 14px}
+  .flip{position:relative;width:100%;height:min(54vh,430px);cursor:pointer;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.8,.2,1);user-select:none;-webkit-user-select:none}
+  .flip.open{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+  .front{background:repeating-linear-gradient(45deg,#2a2339 0 14px,#251e33 14px 28px);border:2px dashed var(--line)} .front .big{font-size:66px}
+  .back{transform:rotateY(180deg);border:2px solid var(--line)}
+  .back.imp{background:linear-gradient(160deg,#5a1020,#2a0a12);border-color:var(--red)}
+  .back.crew{background:linear-gradient(160deg,#103a2c,#0c1f1a);border-color:var(--green)}
+  .word{font-size:clamp(34px,11vw,58px);font-weight:800;line-height:1;letter-spacing:-.02em;margin:10px 0;word-break:break-word}
+  .tag{font-size:13px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;opacity:.85}
+  .banner{padding:12px 14px;border-radius:14px;background:var(--panel2);font-weight:600;margin-bottom:14px;display:flex;gap:10px;align-items:center}
+  .banner.warn{background:#3a2a10;color:#ffd98a}
+  .tally{display:flex;flex-direction:column;gap:8px} .tally .t{display:flex;align-items:center;gap:10px}
+  .bar{height:10px;border-radius:99px}
+  .dots::after{content:"";animation:d 1.2s infinite steps(4)}
+  @keyframes d{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+  .pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)} @keyframes pop{from{transform:scale(.88);opacity:0}to{transform:none;opacity:1}}
+  .linkish{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;padding:8px}
+  .toast{position:fixed;left:50%;bottom:calc(24px + var(--sb));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-weight:700;z-index:20;animation:pop .3s}
+  .sheet{position:fixed;inset:0;background:rgba(10,8,15,.7);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+  .sheet .inner{background:var(--panel);border-radius:22px 22px 0 0;padding:20px 20px calc(20px + var(--sb));max-width:520px;width:100%}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+"use strict";
+const $app = document.getElementById("app");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ls = { get(k, d){ try{ return localStorage.getItem(k) ?? d; }catch{ return d; } }, set(k, v){ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch{} } };
+const COLORS = ["#ffcf3f","#3fe0a0","#6ab8ff","#ff8fb1","#c39bff","#ff9f43","#7ee8fa","#f9f871","#b8e986","#ff6b6b","#a0c4ff","#ffd6a5"];
+const buzz = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch{} };
+
+let PID = ls.get("imp.pid");
+if (!PID || !/^[A-Za-z0-9_-]{8,40}$/.test(PID)){ PID = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => (b % 36).toString(36)).join(""); ls.set("imp.pid", PID); }
+
+const S = {
+  name: ls.get("imp.name", ""),
+  code: ls.get("imp.room", null),  // room we're in (survives reloads)
+  state: null, cats: [], catMap: {},
+  connected: false, busy: false, err: "",
+  openRound: null, menu: null
+};
+const inviteCode = (new URLSearchParams(location.search).get("r") || location.hash.slice(1) || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+
+const socket = io({ transports: ["websocket", "polling"] });
+socket.on("connect", () => { S.connected = true; if (S.code && S.name) join({ code: S.code }, true); else render(); });
+socket.on("disconnect", () => { S.connected = false; render(); });
+socket.on("state", st => { S.state = st; S.code = st.code; ls.set("imp.room", st.code); render(); });
+socket.on("kicked", msg => { goHome(msg); });
+
+fetch("/categories.json").then(r => r.json()).then(c => { S.cats = c; c.forEach(x => S.catMap[x.key] = x); render(); }).catch(() => {});
+const catInfo = k => k === "random" ? { name: "Surprise me", emo: "🎲" } : (S.catMap[k] || { name: k || "?", emo: "❓" });
+
+function toast(t){ document.querySelectorAll(".toast").forEach(x => x.remove()); const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); }
+
+function join(opts, silent){
+  if (!S.name.trim()){ S.err = "Enter your name first"; render(); document.getElementById("name")?.focus(); return; }
+  S.busy = true; if (!silent) S.err = ""; render();
+  socket.timeout(8000).emit("join", Object.assign({ name: S.name, pid: PID }, opts), (err, res) => {
+    S.busy = false;
+    if (err){ S.err = "Server didn't answer — try again"; return render(); }
+    if (res.error){
+      if (silent){ S.code = null; ls.set("imp.room", null); S.state = null; }
+      S.err = res.error; return render();
+    }
+    S.err = "";
+    try{ history.replaceState(null, "", "/?r=" + res.code); }catch{}
+  });
+}
+function goHome(msg){
+  S.state = null; S.code = null; ls.set("imp.room", null); S.err = msg || ""; S.openRound = null;
+  try{ history.replaceState(null, "", "/"); }catch{}
+  render();
+}
+function leave(){ socket.emit("leave"); goHome(); }
+function emit(ev, data, cb){ socket.emit(ev, data, cb); }
+
+async function share(){
+  const url = `${location.origin}/?r=${S.state.code}`;
+  const text = `Join my Who's the Imposter? game — room ${S.state.code}`;
+  if (navigator.share){ try{ await navigator.share({ title: "Who's the Imposter?", text, url }); return; }catch(e){ if (e && e.name === "AbortError") return; } }
+  try{ await navigator.clipboard.writeText(url); toast("Invite link copied"); }catch{ prompt("Copy this invite link:", url); }
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  document.querySelectorAll(".sheet").forEach(x => x.remove());
+  if (!S.state) renderHome(); else renderRoom();
+  if (S.menu) renderMenu();
+}
+
+function renderHome(){
+  $app.innerHTML = `
+    <h1>Who's the<br>Imposter<span class="q">?</span></h1>
+    <p class="sub">Everyone gets the secret word — except one. Give clues, bluff, and vote out the faker.</p>
+    ${S.err ? `<div class="banner warn">⚠️ ${esc(S.err)}</div>` : ""}
+    ${!S.connected ? `<div class="banner">Connecting to the server<span class="dots"></span></div>` : ""}
+    <div class="card">
+      <label class="lbl" for="name">Your name</label>
+      <input id="name" type="text" maxlength="16" autocomplete="off" placeholder="e.g. Sam" value="${esc(S.name)}" enterkeyhint="go">
+    </div>
+    <div class="card">
+      ${inviteCode ? `
+        <button class="btn" id="joininvite" ${S.busy || !S.connected ? "disabled" : ""}>Join room <span class="mono" style="letter-spacing:.15em">${esc(inviteCode)}</span> →</button>
+        <div class="or">or</div>
+        <button class="btn ghost" id="create" ${S.busy || !S.connected ? "disabled" : ""}>Create a new room</button>` : `
+        <button class="btn" id="create" ${S.busy || !S.connected ? "disabled" : ""}>＋ Create a room</button>
+        <div class="or">or join a friend</div>
+        <div class="row">
+          <input id="code" type="text" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off" class="mono" style="text-transform:uppercase;letter-spacing:.25em;text-align:center">
+          <button class="btn ghost" id="join" ${S.busy || !S.connected ? "disabled" : ""} style="flex:.7">Join</button>
+        </div>`}
+    </div>
+    <a class="btn ghost" href="/solo/">📱 Pass-and-play on one phone</a>
+    <p class="center muted small" style="margin-top:22px">3–20 players · 9 categories · one imposter per round</p>`;
+  const nameEl = document.getElementById("name");
+  nameEl.addEventListener("input", () => { S.name = nameEl.value.slice(0, 16); ls.set("imp.name", S.name); });
+  const c = document.getElementById("create"); if (c) c.onclick = () => join({ create: true });
+  const ji = document.getElementById("joininvite"); if (ji) ji.onclick = () => join({ code: inviteCode });
+  const codeEl = document.getElementById("code");
+  const doJoin = () => { const v = (codeEl.value || "").toUpperCase().replace(/[^A-Z]/g, ""); if (v.length !== 4){ S.err = "Room codes are 4 letters"; return render(); } join({ code: v }); };
+  if (codeEl){ document.getElementById("join").onclick = doJoin; codeEl.addEventListener("keydown", e => { if (e.key === "Enter") doJoin(); }); }
+  nameEl.addEventListener("keydown", e => { if (e.key === "Enter"){ if (inviteCode) join({ code: inviteCode }); else nameEl.blur(); } });
+}
+
+function renderRoom(){
+  const st = S.state, host = st.hostId === st.you;
+  const ps = st.players, hostP = ps.find(p => p.id === st.hostId);
+  const color = id => COLORS[Math.max(0, ps.findIndex(p => p.id === id)) % COLORS.length];
+  const nameOf = id => (ps.find(p => p.id === id) || {}).name || "Someone who left";
+  const av = p => `<span class="avatar" style="background:${color(p.id)}">${esc((p.name[0] || "?").toUpperCase())}</span>`;
+  const chip = (p, extra = "") => `${av(p)}${esc(p.name)}${p.id === st.hostId ? " 👑" : ""}${p.id === st.you ? ' <span class="muted small">(you)</span>' : ""}${!p.connected ? ' <span class="muted small">offline</span>' : ""}${extra}`;
+  const online = ps.filter(p => p.connected).length;
+
+  let html = `
+    <div class="topbar">
+      <button class="btn ghost sm" id="leave">← Leave</button>
+      <button class="btn ghost sm" id="share" style="gap:10px"><span style="text-align:right;line-height:1.05"><span class="muted small" style="display:block;font-weight:600">ROOM · tap to invite</span><span class="code">${esc(st.code)}</span></span></button>
+    </div>
+    ${!S.connected ? `<div class="banner warn">Reconnecting<span class="dots"></span></div>` : ""}
+    ${S.err ? `<div class="banner warn">⚠️ ${esc(S.err)}</div>` : ""}`;
+
+  const r = st.round;
+  if (!r){
+    const votes = {}; ps.forEach(p => { if (p.catVote) (votes[p.catVote] = votes[p.catVote] || []).push(p); });
+    const top = Object.entries(votes).sort((a, b) => b[1].length - a[1].length)[0];
+    const keys = S.cats.map(c => c.key).concat("random");
+    html += `
+      <div class="card">
+        <h2>Players · ${ps.length}</h2>
+        <div class="players">${ps.map(p => host && p.id !== st.you
+          ? `<button class="player ${p.connected ? "" : "off"}" data-menu="${esc(p.id)}">${chip(p)}</button>`
+          : `<span class="player ${p.id === st.you ? "me" : ""} ${p.connected ? "" : "off"}">${chip(p)}</span>`).join("")}</div>
+        ${online < 3 ? `<p class="muted small" style="margin:12px 0 0">Need at least 3 players. Tap the room code above to send friends an invite link.</p>` : ""}
+        ${host && ps.length > 1 ? `<p class="muted small" style="margin:10px 0 0">Tap a player to make them host or remove them.</p>` : ""}
+      </div>
+      <div class="card">
+        <h2>Category</h2>
+        <p class="muted small" style="margin:-4px 0 12px">${host ? "Tap to pick. Dots show what players voted for." : `Tap to vote — ${esc(hostP ? hostP.name : "the host")} makes the final pick.`}</p>
+        <div class="cats">${keys.map(k => { const c = catInfo(k), me = ps.find(p => p.id === st.you);
+          return `<button class="cat ${st.sel === k ? "picked" : ""} ${me && me.catVote === k && !host ? "myvote" : ""}" data-cat="${k}">
+            <span class="emo">${c.emo}</span>${esc(c.name)}
+            <div class="votes">${(votes[k] || []).map(p => `<span style="background:${color(p.id)}"></span>`).join("")}</div></button>`; }).join("")}</div>
+        ${host && top && top[0] !== st.sel ? `<button class="btn ghost sm mt" id="usetop" data-k="${esc(top[0])}" style="width:100%">Use top vote: ${esc(catInfo(top[0]).name)}</button>` : ""}
+      </div>
+      ${host ? `
+        <div class="card"><div class="toggle" id="hint"><span><b>Imposter sees the category</b><br><span class="muted small">Off = harder for the imposter</span></span><span class="switch ${st.hint ? "on" : ""}"></span></div></div>
+        <button class="btn" id="start" ${online < 3 ? "disabled" : ""}>Start round →</button>`
+      : `<div class="card center muted">Waiting for ${esc(hostP ? hostP.name : "the host")} to start<span class="dots"></span></div>`}`;
+  } else if (r.phase === "play"){
+    const cat = catInfo(r.cat), open = S.openRound === r.id;
+    if (!r.you){
+      html += `<div class="card center"><h2>Round in progress</h2><p class="muted">You joined mid-round — you'll be dealt in next round.</p></div>`;
+    } else {
+      html += `
+        <div class="reveal"><div class="flip ${open ? "open" : ""}" id="flip">
+          <div class="face front"><div class="big">🤫</div><h2 style="margin-top:12px;font-size:24px">Tap to reveal</h2><p class="muted small">Keep your screen hidden. Tap again to hide.</p></div>
+          ${r.you.imp
+            ? `<div class="face back imp"><div class="tag">You are the</div><div class="word">IMPOSTER</div><div class="muted">${r.cat ? `Category: <b style="color:var(--ink)">${cat.emo} ${esc(cat.name)}</b>` : "No category hint this round"}</div><p class="small" style="opacity:.8;margin-top:14px">Blend in. Work out the word from everyone's clues.</p></div>`
+            : `<div class="face back crew"><div class="tag">${cat.emo} ${esc(cat.name)}</div><div class="word">${esc(r.you.word)}</div><p class="small" style="opacity:.8;margin-top:6px">Give clues — but don't make it too obvious!</p></div>`}
+        </div></div>
+        <div class="banner">🎤 <span><b>${esc(nameOf(r.starter))}</b> goes first. Go around giving one-word clues.</span></div>
+        <div class="card">
+          <h2>Who's the imposter?</h2>
+          <p class="muted small" style="margin:-4px 0 12px">Tap your suspect to vote. ${r.voted}/${r.dealt.length} voted.</p>
+          <div class="players">${ps.filter(p => r.dealt.includes(p.id) && p.id !== st.you).map(p =>
+            `<button class="player ${r.myVote === p.id ? "sel" : ""} ${p.connected ? "" : "off"}" data-vote="${esc(p.id)}">${av(p)}${esc(p.name)}</button>`).join("")}</div>
+        </div>`;
+    }
+    html += host
+      ? `<button class="btn red" id="reveal">Reveal the imposter</button><button class="linkish" id="lobby" style="display:block;margin:8px auto 0">Cancel round</button>`
+      : `<p class="center muted small">${esc(hostP ? hostP.name : "The host")} will reveal the imposter.</p>`;
+  } else {
+    const cat = catInfo(r.cat);
+    const tally = Object.entries(r.tally || {}).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(1, ...tally.map(t => t[1]));
+    const caught = tally.length && tally[0][0] === r.imp && (tally.length < 2 || tally[1][1] < tally[0][1]);
+    html += `
+      <div class="card center pop" style="border-color:var(--red);padding:24px 16px">
+        <div class="tag muted">The imposter was</div>
+        <div class="word" style="color:var(--red);margin:12px 0">${esc(nameOf(r.imp))}${r.imp === st.you ? " (you!)" : ""}</div>
+        <div class="muted">The word was <b style="color:var(--ink)">${esc(r.word)}</b> · ${cat.emo} ${esc(cat.name)}</div>
+        ${tally.length ? `<p style="font-weight:800;font-size:19px;margin:16px 0 0">${caught ? "🎉 Caught! Imposter gets one guess at the word to steal the win." : "😈 The imposter got away!"}</p>` : ""}
+      </div>
+      ${tally.length ? `<div class="card"><h2>Votes</h2><div class="tally">${tally.map(([id, n]) => `<div class="t"><span style="min-width:110px;font-weight:600">${esc(nameOf(id))}</span><span class="bar" style="width:${n / max * 55}%;background:${id === r.imp ? "var(--red)" : "var(--line)"}"></span><span class="mono">${n}</span></div>`).join("")}</div></div>` : ""}
+      ${host ? `<button class="btn" id="again" ${online < 3 ? "disabled" : ""}>Next round (same category)</button><button class="btn ghost mt" id="lobby">Change category</button>`
+             : `<div class="card center muted">Waiting for ${esc(hostP ? hostP.name : "the host")} to start the next round<span class="dots"></span></div>`}`;
+  }
+  $app.innerHTML = html;
+
+  const q = id => document.getElementById(id);
+  q("leave").onclick = leave;
+  q("share").onclick = share;
+  document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => emit("vote_cat", b.dataset.cat));
+  document.querySelectorAll("[data-menu]").forEach(b => b.onclick = () => { S.menu = b.dataset.menu; render(); });
+  document.querySelectorAll("[data-vote]").forEach(b => b.onclick = () => emit("suspect", b.dataset.vote));
+  if (q("usetop")) q("usetop").onclick = () => emit("set_cat", q("usetop").dataset.k);
+  if (q("hint")) q("hint").onclick = () => emit("set_hint", !st.hint);
+  const start = () => emit("start", null, res => { if (res && res.error){ S.err = res.error; render(); } else { S.err = ""; } });
+  if (q("start")) q("start").onclick = start;
+  if (q("again")) q("again").onclick = start;
+  if (q("reveal")) q("reveal").onclick = () => emit("reveal");
+  if (q("lobby")) q("lobby").onclick = () => emit("to_lobby");
+  if (q("flip")) q("flip").onclick = () => { const open = S.openRound !== r.id; S.openRound = open ? r.id : null; q("flip").classList.toggle("open", open); if (open) buzz(r.you.imp ? [60,60,60] : 30); };
+}
+
+function renderMenu(){
+  const st = S.state, p = st && st.players.find(x => x.id === S.menu);
+  if (!p || st.hostId !== st.you){ S.menu = null; return; }
+  const d = document.createElement("div"); d.className = "sheet";
+  d.innerHTML = `<div class="inner"><h2>${esc(p.name)}</h2>
+    <button class="btn ghost" id="mkhost">👑 Make host</button>
+    <button class="btn red mt" id="kick">Remove from room</button>
+    <button class="linkish" id="cancel" style="display:block;margin:10px auto 0">Cancel</button></div>`;
+  document.body.appendChild(d);
+  const close = () => { S.menu = null; d.remove(); };
+  d.onclick = e => { if (e.target === d) close(); };
+  d.querySelector("#cancel").onclick = close;
+  d.querySelector("#mkhost").onclick = () => { emit("make_host", p.id); close(); };
+  d.querySelector("#kick").onclick = () => { emit("kick", p.id); close(); };
+}
+
+render();
+</script>
+</body>
+</html>
