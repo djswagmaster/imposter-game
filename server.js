@@ -67,7 +67,7 @@ function viewFor(room, pid) {
   let round = null;
   if (r) {
     const dealt = r.dealt.includes(pid);
-    const isImp = dealt && r.imp === pid;
+    const isImp = dealt && r.imps.includes(pid);
     round = {
       id: r.id,
       phase: r.phase,
@@ -83,7 +83,7 @@ function viewFor(room, pid) {
     if (r.phase === "reveal") {
       const tally = {};
       for (const s of r.votes.values()) tally[s] = (tally[s] || 0) + 1;
-      Object.assign(round, { imp: r.imp, word: r.word, tally });
+      Object.assign(round, { imps: r.imps, word: r.word, tally });
     }
   }
   return { code: room.code, you: pid, hostId: room.hostId, sel: room.sel, hint: room.hint, players, round };
@@ -103,6 +103,19 @@ function removePlayer(room, pid) {
   broadcast(room);
 }
 
+// Imposter count for a round: usually 1, with rare surprise rounds.
+//   1%  no imposter at all
+//   5%  everyone is the imposter
+//   20% two imposters (needs 4+ players, otherwise it stays at 1)
+function imposterCount(n) {
+  const roll = randInt(100);
+  if (roll < 1) return 0;
+  if (roll < 6) return n;
+  if (roll < 26) return n >= 4 ? 2 : 1;
+  return 1;
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
 function startRound(room) {
   const ps = connectedPlayers(room);
   if (ps.length < 3) return "Need at least 3 connected players";
@@ -111,11 +124,12 @@ function startRound(room) {
   let pool = CATS[cat].words.filter(w => !used.includes(w));
   if (!pool.length) { room.used[cat] = []; pool = CATS[cat].words.slice(); }
   const word = pick(pool); room.used[cat].push(word);
-  const imp = pick(ps).id;
-  const starter = pick(ps.filter(p => p.id !== imp)).id;
+  const imps = shuffle(ps.map(p => p.id)).slice(0, imposterCount(ps.length));
+  const crew = ps.filter(p => !imps.includes(p.id));
+  const starter = pick(crew.length ? crew : ps).id;
   room.round = {
     id: crypto.randomBytes(6).toString("hex"),
-    phase: "play", cat, word, imp, starter, hint: room.hint,
+    phase: "play", cat, word, imps, starter, hint: room.hint,
     dealt: ps.map(p => p.id), votes: new Map(),
   };
   return null;
@@ -216,7 +230,7 @@ io.on("connection", socket => {
   socket.on("suspect", target => {
     const { room, me } = ctx(); const r = room && room.round;
     if (!r || r.phase !== "play" || !r.dealt.includes(me.id)) return;
-    if (typeof target !== "string" || target === me.id || !r.dealt.includes(target)) return;
+    if (typeof target !== "string" || target === me.id || (target !== "none" && !r.dealt.includes(target))) return;
     if (r.votes.get(me.id) === target) r.votes.delete(me.id); else r.votes.set(me.id, target);
     broadcast(room);
   });

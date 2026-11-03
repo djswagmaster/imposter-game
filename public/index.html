@@ -239,9 +239,10 @@ function renderRoom(){
         <div class="banner">🎤 <span><b>${esc(nameOf(r.starter))}</b> goes first. Go around giving one-word clues.</span></div>
         <div class="card">
           <h2>Who's the imposter?</h2>
-          <p class="muted small" style="margin:-4px 0 12px">Tap your suspect to vote. ${r.voted}/${r.dealt.length} voted.</p>
+          <p class="muted small" style="margin:-4px 0 12px">Tap your suspect to vote. ${r.voted}/${r.dealt.length} voted. There's usually one imposter… usually.</p>
           <div class="players">${ps.filter(p => r.dealt.includes(p.id) && p.id !== st.you).map(p =>
-            `<button class="player ${r.myVote === p.id ? "sel" : ""} ${p.connected ? "" : "off"}" data-vote="${esc(p.id)}">${av(p)}${esc(p.name)}</button>`).join("")}</div>
+            `<button class="player ${r.myVote === p.id ? "sel" : ""} ${p.connected ? "" : "off"}" data-vote="${esc(p.id)}">${av(p)}${esc(p.name)}</button>`).join("")}
+            <button class="player ${r.myVote === "none" ? "sel" : ""}" data-vote="none"><span class="avatar" style="background:var(--line);color:var(--ink)">∅</span>No imposter</button></div>
         </div>`;
     }
     html += host
@@ -251,15 +252,32 @@ function renderRoom(){
     const cat = catInfo(r.cat);
     const tally = Object.entries(r.tally || {}).sort((a, b) => b[1] - a[1]);
     const max = Math.max(1, ...tally.map(t => t[1]));
-    const caught = tally.length && tally[0][0] === r.imp && (tally.length < 2 || tally[1][1] < tally[0][1]);
+    const imps = r.imps || [], all = imps.length > 0 && imps.length === r.dealt.length;
+    const top = tally.length && (tally.length < 2 || tally[1][1] < tally[0][1]) ? tally[0][0] : null;
+    const voteName = id => id === "none" ? "No imposter" : nameOf(id);
+    const isRight = id => imps.length === 0 ? id === "none" : imps.includes(id);
+    const youImp = imps.includes(st.you);
+    let label, who, verdict;
+    if (imps.length === 0){
+      label = "Surprise round"; who = "NO IMPOSTER 🤯";
+      verdict = top === "none" ? "🎉 You called it — everyone had the same word!" : "😅 You were all hunting a ghost. Everyone had the same word!";
+    } else if (all){
+      label = "Surprise round"; who = "EVERYONE 😈";
+      verdict = "Nobody had the word — you were all bluffing each other!";
+    } else {
+      label = imps.length > 1 ? "The imposters were" : "The imposter was";
+      who = imps.map(nameOf).join(" & ") + (youImp ? " (you!)" : "");
+      verdict = top && isRight(top) ? (imps.length > 1 ? `🎉 Caught ${esc(nameOf(top))}! But there were two…` : "🎉 Caught! Imposter gets one guess at the word to steal the win.")
+                                    : (imps.length > 1 ? "😈 The imposters got away!" : "😈 The imposter got away!");
+    }
     html += `
       <div class="card center pop" style="border-color:var(--red);padding:24px 16px">
-        <div class="tag muted">The imposter was</div>
-        <div class="word" style="color:var(--red);margin:12px 0">${esc(nameOf(r.imp))}${r.imp === st.you ? " (you!)" : ""}</div>
+        <div class="tag muted">${label}</div>
+        <div class="word" style="color:var(--red);margin:12px 0">${esc(who)}</div>
         <div class="muted">The word was <b style="color:var(--ink)">${esc(r.word)}</b> · ${cat.emo} ${esc(cat.name)}</div>
-        ${tally.length ? `<p style="font-weight:800;font-size:19px;margin:16px 0 0">${caught ? "🎉 Caught! Imposter gets one guess at the word to steal the win." : "😈 The imposter got away!"}</p>` : ""}
+        ${tally.length || imps.length !== 1 ? `<p style="font-weight:800;font-size:19px;margin:16px 0 0">${verdict}</p>` : ""}
       </div>
-      ${tally.length ? `<div class="card"><h2>Votes</h2><div class="tally">${tally.map(([id, n]) => `<div class="t"><span style="min-width:110px;font-weight:600">${esc(nameOf(id))}</span><span class="bar" style="width:${n / max * 55}%;background:${id === r.imp ? "var(--red)" : "var(--line)"}"></span><span class="mono">${n}</span></div>`).join("")}</div></div>` : ""}
+      ${tally.length ? `<div class="card"><h2>Votes</h2><div class="tally">${tally.map(([id, n]) => `<div class="t"><span style="min-width:110px;font-weight:600">${esc(voteName(id))}</span><span class="bar" style="width:${n / max * 55}%;background:${isRight(id) ? "var(--red)" : "var(--line)"}"></span><span class="mono">${n}</span></div>`).join("")}</div></div>` : ""}
       ${host ? `<button class="btn" id="again" ${online < 3 ? "disabled" : ""}>Next round (same category)</button><button class="btn ghost mt" id="lobby">Change category</button>`
              : `<div class="card center muted">Waiting for ${esc(hostP ? hostP.name : "the host")} to start the next round<span class="dots"></span></div>`}`;
   }

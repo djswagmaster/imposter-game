@@ -1,5 +1,5 @@
 // Offline cache for the installed web app. Bump VERSION when files change.
-const VERSION = "imposter-v1";
+const VERSION = "imposter-v2";
 const FILES = ["./", "index.html", "words.js", "manifest.webmanifest", "fonts/bricolage.woff2",
   "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

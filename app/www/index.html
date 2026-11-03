@@ -114,7 +114,7 @@ const S = {
   hint: store.get("imp.hint", true),
   timer: store.get("imp.timer", 0),     // minutes, 0 = off
   used: store.get("imp.used", {}),
-  round: null,                           // {cat, word, imp, starter, i, open}
+  round: null,                           // {cat, word, imps:[player idx], starter, i, open}
   confirmReveal: false,
   tEnd: 0, tick: null,
   help: false
@@ -122,15 +122,27 @@ const S = {
 const save = () => { store.set("imp.players", S.players); store.set("imp.cat", S.cat); store.set("imp.hint", S.hint); store.set("imp.timer", S.timer); store.set("imp.used", S.used); };
 const nameOf = i => (S.players[i] || "").trim() || `Player ${i + 1}`;
 
+// Usually 1 imposter, with rare surprise rounds:
+//   1% no imposter · 5% everyone is the imposter · 20% two imposters (4+ players)
+function imposterCount(n){
+  const roll = rnd(100);
+  if (roll < 1) return 0;
+  if (roll < 6) return n;
+  if (roll < 26) return n >= 4 ? 2 : 1;
+  return 1;
+}
+function shuffle(a){ for (let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
 function deal(){
   const cat = S.cat === "random" ? pick(CAT_KEYS) : S.cat;
   const used = (S.used[cat] = (S.used[cat] || []).filter(w => CATS[cat].words.includes(w)));
   let pool = CATS[cat].words.filter(w => !used.includes(w));
   if (!pool.length){ S.used[cat] = []; pool = CATS[cat].words.slice(); }
   const word = pick(pool); S.used[cat].push(word);
-  const n = S.players.length, imp = rnd(n);
-  let starter; do { starter = rnd(n); } while (starter === imp);
-  S.round = { cat, word, imp, starter, i: 0, open: false, seen: false };
+  const n = S.players.length, imps = shuffle([...Array(n).keys()]).slice(0, imposterCount(n));
+  const crew = [...Array(n).keys()].filter(i => !imps.includes(i));
+  const starter = pick(crew.length ? crew : [...Array(n).keys()]);
+  S.round = { cat, word, imps, starter, i: 0, open: false, seen: false };
   S.confirmReveal = false; S.screen = "pass"; save(); go();
 }
 
@@ -213,7 +225,7 @@ function renderSetup(){
 }
 
 function renderPass(){
-  const r = S.round, n = S.players.length, cat = CATS[r.cat], isImp = r.i === r.imp, last = r.i === n - 1;
+  const r = S.round, n = S.players.length, cat = CATS[r.cat], isImp = r.imps.includes(r.i), last = r.i === n - 1;
   $app.innerHTML = `
     <div class="topbar"><button class="iconbtn" id="x" aria-label="End round">✕</button>
       <div class="progress">${S.players.map((_, i) => `<span class="${i < r.i ? "done" : ""}"></span>`).join("")}</div><span style="width:44px"></span></div>
@@ -261,17 +273,23 @@ function renderTalk(){
 }
 
 function renderReveal(){
-  const r = S.round, cat = CATS[r.cat];
+  const r = S.round, cat = CATS[r.cat], k = r.imps.length, all = k === S.players.length;
+  const label = k === 0 || all ? "Surprise round!" : k > 1 ? "The imposters were" : "The imposter was";
+  const who = k === 0 ? "NO IMPOSTER 🤯" : all ? "EVERYONE 😈" : r.imps.map(nameOf).join(" & ");
+  const note = k === 0 ? "Everyone had the same word — you were hunting a ghost!"
+             : all ? "Nobody had the word — you were all bluffing each other!"
+             : k > 1 ? "Two imposters this round! If they guess the word now, they steal the win."
+             : "Imposter: if you guess the word now, you can steal the win!";
   $app.innerHTML = `
     <div class="topbar"><span></span><span></span></div>
     <div class="card center pop" style="border-color:var(--red);padding:28px 16px;margin-top:8px">
-      <div class="tag muted">The imposter was</div>
-      <div class="word" style="color:var(--red);margin:14px 0">${esc(nameOf(r.imp))}</div>
+      <div class="tag muted">${label}</div>
+      <div class="word" style="color:var(--red);margin:14px 0">${esc(who)}</div>
       <div class="muted">The word was</div>
       <div style="font-size:30px;font-weight:800;margin-top:4px">${esc(r.word)}</div>
       <div class="muted small" style="margin-top:6px">${cat.emo} ${esc(cat.name)}</div>
     </div>
-    <p class="center muted small">Imposter: if you guess the word now, you can steal the win!</p>
+    <p class="center muted small" style="font-size:15px">${note}</p>
     <div class="spacer"></div>
     <button class="btn" id="again">Play again</button>
     <button class="btn ghost mt" id="setup">Change players or category</button>`;
@@ -287,6 +305,7 @@ function renderHelp(){
       <li>Add everyone's names (3–20 players) and pick a category.</li>
       <li>Pass the phone around. Each person taps to see their card, then hides it and passes it on.</li>
       <li>Everyone gets the same secret word — except one random <b>imposter</b>, who only sees the category (or nothing, if you turn the hint off).</li>
+      <li>Watch out: now and then a round has <b>two imposters</b>, <b>everyone</b> as the imposter, or <b>no imposter at all</b>.</li>
       <li>Going around from the first player, everyone gives one clue about the word. Too vague looks suspicious; too obvious gives it away to the imposter.</li>
       <li>Discuss, then vote on who you think the imposter is. Tap <b>Reveal</b> to see if you were right.</li>
       <li>If the imposter is caught, they get one guess at the word to steal the win.</li>
